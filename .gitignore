@@ -1,0 +1,6 @@
+results
+__pycache__
+.vscode
+cache
+version.txt
+counter-fitted-vectors.txt
