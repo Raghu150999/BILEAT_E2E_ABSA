@@ -25,9 +25,9 @@ class ABSADataset(Dataset):
             'token_type_ids': self.all_segment_ids[idx],
             'labels':         self.all_label_ids[idx],
             'labels_normal':  self.all_label_ids_1[idx],
+            'labels_op':      self.all_label_ids_o[idx],
             'lm_labels':      self.stm_lm_labels[idx],
             'labels_sent':    self.labels_sent[idx],
-            'labels_op':      self.all_label_ids_o[idx],
             'idxs':           self.idxs[idx]
             }
         return data

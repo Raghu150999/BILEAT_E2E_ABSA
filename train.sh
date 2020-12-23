@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+# Dataset: [laptop14, rest_total]
 TASK_NAME=laptop14
-ABSA_TYPE=Full-Hinge-Loss
+# Model name
+MODEL_NAME=BILEAT
 CUDA_VISIBLE_DEVICES=0,2,3 python main.py --model_type bert \
-                         --absa_type ${ABSA_TYPE} \
+                         --absa_type ${MODEL_NAME} \
                          --tfm_mode finetune \
                          --fix_tfm 0 \
                          --model_name_or_path activebus/BERT-DK_laptop \
@@ -13,10 +15,9 @@ CUDA_VISIBLE_DEVICES=0,2,3 python main.py --model_type bert \
                          --learning_rate 4e-5 \
                          --do_train \
                          --do_eval \
-                         --evaluate_during_training \
-                         --load_model laptop/alpha-0.5/saved_model-1000 \
+                         --load_model WBDK-BERT/laptop_pt_adv/saved_model-1000 \
                          --do_adv \
-                         --adv_data_path adv-laptop/train.pth \
+                         --adv_data_path ${TASK_NAME}_adv/train.pth \
                          --adv_loss_weight 0.2 \
                          --do_lower_case \
                          --tagging_schema BIO \

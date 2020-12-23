@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Dataset: [laptop14, rest_total]
+TASK_NAME=laptop14
+# Model name
+MODEL_NAME=BERTLINEAR
+CUDA_VISIBLE_DEVICES=0,2,3 python main.py --model_type bert \
+                         --absa_type ${MODEL_NAME} \
+                         --tfm_mode finetune \
+                         --fix_tfm 0 \
+                         --model_name_or_path bert-base-uncased \
+                         --data_dir ./data/${TASK_NAME} \
+                         --task_name ${TASK_NAME} \
+                         --per_gpu_train_batch_size 16 \
+                         --per_gpu_eval_batch_size 8 \
+                         --learning_rate 4e-5 \
+                         --do_train \
+                         --do_eval \
+                         --do_lower_case \
+                         --tagging_schema BIO \
+                         --overfit 0 \
+                         --eval_all_checkpoints \
+                         --overwrite_output_dir \
+                         --MASTER_ADDR localhost \
+                         --MASTER_PORT 28512 \
+                         --max_steps 1500 \
+
+CUDA_VISIBLE_DEVICES=0,2,3 python main.py --model_type bert \
+                         --absa_type ${MODEL_NAME} \
+                         --tfm_mode finetune \
+                         --fix_tfm 0 \
+                         --model_name_or_path bert-base-uncased \
+                         --data_dir ./data/${TASK_NAME} \
+                         --task_name ${TASK_NAME} \
+                         --per_gpu_train_batch_size 16 \
+                         --per_gpu_eval_batch_size 8 \
+                         --learning_rate 4e-5 \
+                         --gen_adv_from_path ${MODEL_NAME}-${TASK_NAME}/checkpoint-1500 \
+                         --do_lower_case \
+                         --tagging_schema BIO \
+                         --overfit 0 \
+                         --eval_all_checkpoints \
+                         --overwrite_output_dir \
+                         --MASTER_ADDR localhost \
+                         --MASTER_PORT 28512 \
+                         --max_steps 1500 \
+
+python gen_data.py ${TASK_NAME}

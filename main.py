@@ -6,23 +6,16 @@ import random
 import numpy as np
 import shutil
 
-from glue_utils import convert_examples_to_seq_features, output_modes, processors, compute_metrics_absa
+from glue_utils import convert_examples_to_seq_features, output_modes, processors, compute_metrics_absa, ABSAProcessor
 from tqdm import tqdm, trange
-from transformers import BertConfig, BertTokenizer, XLNetConfig, XLNetTokenizer, WEIGHTS_NAME, AutoTokenizer
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import BertConfig, AutoTokenizer, AdamW, get_linear_schedule_with_warmup
 from absa_layer import BertABSATagger
 from dataset import ABSADataset
 from torch.utils.data import DataLoader, TensorDataset, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-import torch.distributed as dist
 from tensorboardX import SummaryWriter
-from glue_utils import ABSAProcessor
-from filter_words import filter_words
 from adversary import Adversary
 from utils import convert_to_batch, convert_to_dataset
-
-import glob
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -473,22 +466,27 @@ def main():
     config.model_name_or_path = args.model_name_or_path
 
     if args.gen_adv_from_path:
-        mode = 'test'
-        model = model_class.from_pretrained(args.gen_adv_from_path).to(args.device)
-        train_dataset, train_evaluate_label_ids, examples, imp_words = load_and_cache_examples(
-            args, args.task_name, tokenizer, mode=mode, model=model)
-        adversary = Adversary(args, model)
-        adv_examples = []
-        sz = 64
-        for _ in trange(len(examples) // sz + 1):
-            if len(examples) == 0:
-                continue
-            adv_examples.extend(adversary.generate_adv_examples(examples[:sz], imp_words[:sz], tokenizer))
-            examples = examples[sz:]
-            imp_words = imp_words[sz:]
-        adv_dataset = convert_to_dataset(args, adv_examples, tokenizer)
-        torch.save(adv_dataset, f'{args.gen_adv_from_path}/{mode}.pth')
-        torch.save(adv_examples, f'{args.gen_adv_from_path}/{mode}-examples.pth')
+        # Generate adversarial examples
+        modes = ['train', 'dev', 'test']
+        for mode in modes:
+            model = model_class.from_pretrained(args.gen_adv_from_path).to(args.device)
+            train_dataset, train_evaluate_label_ids, examples, imp_words = load_and_cache_examples(
+                args, args.task_name, tokenizer, mode=mode, model=model)
+            adversary = Adversary(args, model)
+            adv_examples = []
+            sz = 64
+            for _ in trange(len(examples) // sz + 1):
+                if len(examples) == 0:
+                    continue
+                adv_examples.extend(adversary.generate_adv_examples(examples[:sz], imp_words[:sz], tokenizer))
+                examples = examples[sz:]
+                imp_words = imp_words[sz:]
+            adv_dataset = convert_to_dataset(args, adv_examples, tokenizer)
+            output_dir = f'{args.task_name}_adv'
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            torch.save(adv_dataset, f'{output_dir}/{mode}.pth')
+            torch.save(adv_examples, f'{output_dir}/{mode}-examples.pth')
         exit(0)
     
     if args.load_model:

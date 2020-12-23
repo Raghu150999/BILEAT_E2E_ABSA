@@ -2,9 +2,10 @@ from glue_utils import InputExample
 import sys
 import torch
 
+# convert .pth file to .txt file (use for generating adversarial examples in text format)
 def create_file(mode):
-    examples = torch.load(f'adv-laptop/{mode}-examples.pth')
-    with open(f'adv-laptop/adv-{mode}.txt', 'w') as f:
+    examples = torch.load(f'{sys.argv[1]}_adv/{mode}-examples.pth')
+    with open(f'{sys.argv[1]}_adv/{mode}.txt', 'w') as f:
         for example in examples:
             words = example.text_a.split(' ')
             line = []
@@ -18,4 +19,5 @@ def create_file(mode):
             f.write(line)
 
 if __name__ == "__main__":
-    create_file('test' if len(sys.argv) == 1 else sys.argv[1])
+    for mode in ['train', 'dev', 'test']:
+        create_file(mode)

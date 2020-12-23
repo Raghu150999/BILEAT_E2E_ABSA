@@ -8,7 +8,7 @@ from filter_words import filter_words
 class Adversary:
     def __init__(self, args, tgt_model, k=10):
         self.args = args
-        # Initialise MLM
+        # Initialise BERT-MLM
         config_mlm = BertConfig.from_pretrained(args.model_name_or_path)
         self.mlm_model = BertForMaskedLM.from_pretrained(args.model_name_or_path, config=config_mlm, cache_dir='./cache').to(args.device)
         self.tgt_model = tgt_model
@@ -54,6 +54,7 @@ class Adversary:
             words = orig.copy()
             for tid, wid in positions:
                 word = words[wid].lower()
+                # get replacement candidates
                 sim_words, scores = self.get_substitues(
                     word_ids[i, tid, :], 
                     word_scores[i, tid, :], 
@@ -78,6 +79,7 @@ class Adversary:
                     new_examples.append(new_example)
                 scores = use.semantic_sim(orig_sentences, new_sentences)
                 scores = torch.tensor(scores).to(args.device)
+                # ensure semantic similarity
                 mask = scores > 0.8
                 scores = scores[mask]
                 new_data = convert_to_batch(args, new_examples, tokenizer)
@@ -86,12 +88,13 @@ class Adversary:
                 sim_words = sim_words[mask]
                 if len(new_data['input_ids']) == 0:
                     continue
-                assert len(new_data['input_ids']) > 0
                 model.eval()
+                # Evaluate new examples on target model
                 new_data_outputs = model(**new_data)
                 logits = new_data_outputs[1]
                 logits = torch.nn.Softmax(dim=-1)(logits)
                 new_preds = logits.argmax(dim=-1)
+                # Check if accuracy is less than 0.5, if yes then terminate with example (for faster running time)
                 match_ratios = self.find_match_ratio(new_data['labels'], new_preds, args.device)
                 cond = match_ratios < 0.5
                 if cond.any():
@@ -134,6 +137,7 @@ class Adversary:
         scores = []
         for (wid, score) in zip(word_ids, word_scores):
             word = tokenizer.convert_ids_to_tokens(wid.item()).lower()
+            # Ignore BERT subwords for now
             if '##' in word:
                 continue
             if word in filter_words:
